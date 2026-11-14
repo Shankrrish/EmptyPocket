@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.util.MonthYear
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -65,8 +66,7 @@ import com.example.util.formatCurrency
 @Composable
 fun TransactionsScreen(
     state: FinanceUiState,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
+    onMonthSelected: (MonthYear) -> Unit,
     onToggleVisibility: () -> Unit,
     onSearchChange: (String) -> Unit,
     onFilterChange: (TxFilter) -> Unit,
@@ -86,8 +86,7 @@ fun TransactionsScreen(
         MonthSelectorBar(
             selectedMonth = state.selectedMonth,
             isBalanceHidden = state.isBalanceHidden,
-            onPrevious = onPreviousMonth,
-            onNext = onNextMonth,
+            onMonthSelected = onMonthSelected,
             onToggleVisibility = onToggleVisibility
         )
 

@@ -226,8 +226,8 @@ interface FinanceDao {
         EpfEntryEntity::class,
         OtherAssetEntity::class
     ],
-    version = 7,
-    exportSchema = false
+    version = 8,
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class FinanceDatabase : RoomDatabase() {
@@ -249,6 +249,14 @@ abstract class FinanceDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN isIgnored INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN repeatCount INTEGER")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN linkedLoanId INTEGER")
+            }
+        }
+
         fun getInstance(context: Context): FinanceDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -256,8 +264,9 @@ abstract class FinanceDatabase : RoomDatabase() {
                     FinanceDatabase::class.java,
                     "finflow_finance.db"
                 )
-                    .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
-                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    // Only pre-v5 installs (no migration path) may be reset; v5+ must always migrate to protect user data.
+                    .fallbackToDestructiveMigrationFrom(true, 1, 2, 3, 4)
                     .build()
                     .also { INSTANCE = it }
             }

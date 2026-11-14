@@ -125,15 +125,129 @@ fun categoryIcon(name: String): ImageVector = when (name) {
 }
 
 @Composable
+fun MonthPickerDialog(
+    selectedMonth: MonthYear,
+    onDismiss: () -> Unit,
+    onMonthSelected: (MonthYear) -> Unit
+) {
+    var pickerYear by remember { mutableStateOf(selectedMonth.year) }
+    val monthNames = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(onClick = { pickerYear -= 1 }, modifier = Modifier.testTag("picker_prev_year")) {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous year")
+                }
+                Text(pickerYear.toString(), style = MaterialTheme.typography.titleLarge)
+                IconButton(onClick = { pickerYear += 1 }, modifier = Modifier.testTag("picker_next_year")) {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next year")
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                monthNames.chunked(3).forEachIndexed { rowIdx, names ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        names.forEachIndexed { colIdx, name ->
+                            val month = rowIdx * 3 + colIdx + 1
+                            val isSelected = pickerYear == selectedMonth.year && month == selectedMonth.month
+                            val bg = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                            val fg = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            androidx.compose.material3.Surface(
+                                color = bg,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("picker_month_$month")
+                                    .clickable {
+                                        onMonthSelected(MonthYear(pickerYear, month))
+                                        onDismiss()
+                                    }
+                            ) {
+                                Text(
+                                    text = name,
+                                    color = fg,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 14.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = {
+                onMonthSelected(MonthYear.current())
+                onDismiss()
+            }) { Text("This month") }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+/** Single month control: previous arrow, tappable label (opens month/year picker), next arrow. */
+@Composable
+fun MonthNavigator(
+    selectedMonth: MonthYear,
+    onMonthSelected: (MonthYear) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    if (showPicker) {
+        MonthPickerDialog(selectedMonth, { showPicker = false }, onMonthSelected)
+    }
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        IconButton(
+            onClick = { onMonthSelected(selectedMonth.plusMonths(-1)) },
+            modifier = Modifier.testTag("prev_month_button")
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = stringResource(R.string.cd_previous_month),
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        Text(
+            text = selectedMonth.displayLabel(),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier
+                .clickable { showPicker = true }
+                .padding(horizontal = 4.dp, vertical = 8.dp)
+                .testTag("month_label_button")
+        )
+        IconButton(
+            onClick = { onMonthSelected(selectedMonth.plusMonths(1)) },
+            modifier = Modifier.testTag("next_month_button")
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = stringResource(R.string.cd_next_month),
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+        }
+    }
+}
+
+@Composable
 fun MonthSelectorBar(
     selectedMonth: MonthYear,
     isBalanceHidden: Boolean,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
+    onMonthSelected: (MonthYear) -> Unit,
     onToggleVisibility: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val label = selectedMonth.displayLabel()
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -142,34 +256,7 @@ fun MonthSelectorBar(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Spacer(modifier = Modifier.size(48.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(
-                onClick = onPrevious,
-                modifier = Modifier.testTag("prev_month_button")
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                    contentDescription = stringResource(R.string.cd_previous_month),
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
-            IconButton(
-                onClick = onNext,
-                modifier = Modifier.testTag("next_month_button")
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = stringResource(R.string.cd_next_month),
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            }
-        }
+        MonthNavigator(selectedMonth = selectedMonth, onMonthSelected = onMonthSelected)
         IconButton(
             onClick = onToggleVisibility,
             modifier = Modifier.testTag("toggle_visibility_button")

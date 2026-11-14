@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.util.MonthYear
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -68,8 +69,7 @@ private enum class ReportTab(val label: String) {
 fun ReportsScreen(
     state: FinanceUiState,
     onBack: () -> Unit,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
+    onMonthSelected: (MonthYear) -> Unit,
     onToggleVisibility: () -> Unit,
     onOpenNetWorthItems: () -> Unit,
     onOpenPortfolio: () -> Unit
@@ -101,8 +101,7 @@ fun ReportsScreen(
             MonthSelectorBar(
                 selectedMonth = state.selectedMonth,
                 isBalanceHidden = state.isBalanceHidden,
-                onPrevious = onPreviousMonth,
-                onNext = onNextMonth,
+                onMonthSelected = onMonthSelected,
                 onToggleVisibility = onToggleVisibility
             )
 

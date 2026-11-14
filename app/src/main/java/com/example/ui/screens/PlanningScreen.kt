@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.util.MonthYear
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -65,8 +66,7 @@ import androidx.compose.foundation.layout.heightIn
 @Composable
 fun PlanningScreen(
     state: FinanceUiState,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
+    onMonthSelected: (MonthYear) -> Unit,
     onToggleVisibility: () -> Unit,
     onSetBudget: (Long, Double, Long) -> Unit,
     onInspectBudgetCategory: (Long) -> Unit,
@@ -79,7 +79,7 @@ fun PlanningScreen(
 ) {
     val semanticColors = FinFlowTheme.colors
     var selectedSection by remember { mutableIntStateOf(0) }
-    val sections = listOf("Budgets", "Recurring", "Forecast & Goals")
+    val sections = listOf("Budgets", "Bills & EMIs", "Savings Goals")
 
     BackHandler(enabled = onBack != null) {
         onBack?.invoke()
@@ -120,13 +120,14 @@ fun PlanningScreen(
                 )
             }
         }
-        MonthSelectorBar(
-            selectedMonth = state.selectedMonth,
-            isBalanceHidden = state.isBalanceHidden,
-            onPrevious = onPreviousMonth,
-            onNext = onNextMonth,
-            onToggleVisibility = onToggleVisibility
-        )
+        if (selectedSection != 2) {
+            MonthSelectorBar(
+                selectedMonth = state.selectedMonth,
+                isBalanceHidden = state.isBalanceHidden,
+                onMonthSelected = onMonthSelected,
+                onToggleVisibility = onToggleVisibility
+            )
+        }
 
         SingleChoiceSegmentedButtonRow(
             modifier = Modifier
@@ -179,6 +180,15 @@ private fun BudgetsTabContent(
     val semanticColors = FinFlowTheme.colors
     val haptics = LocalHapticFeedback.current
     var editingItem by remember { mutableStateOf<BudgetProgress?>(null) }
+    var showOnlyBudgeted by remember { mutableStateOf(false) }
+
+    val displayedList = remember(state.budgetProgressList, showOnlyBudgeted) {
+        if (showOnlyBudgeted) {
+            state.budgetProgressList.filter { (it.budget?.limitAmount ?: 0.0) > 0.0 }
+        } else {
+            state.budgetProgressList
+        }
+    }
 
     editingItem?.let { item ->
         var limitInput by remember { mutableStateOf(item.budget?.limitAmount?.toString() ?: "") }
@@ -318,9 +328,29 @@ private fun BudgetsTabContent(
                     }
                 }
             }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Category Limits (${displayedList.size})",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                FilterChip(
+                    selected = showOnlyBudgeted,
+                    onClick = { showOnlyBudgeted = !showOnlyBudgeted },
+                    label = { Text(if (showOnlyBudgeted) "Budgeted Only" else "All Categories") },
+                    shape = RoundedCornerShape(14.dp)
+                )
+            }
         }
 
-        items(state.budgetProgressList, key = { it.category.id }) { item ->
+        items(displayedList, key = { it.category.id }) { item ->
             val limit = item.budget?.limitAmount ?: 0.0
             val ratio = if (limit > 0) (item.spent / limit).toFloat() else 0f
             val barColor = when {

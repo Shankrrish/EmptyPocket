@@ -81,14 +81,14 @@ object FinanceAnalytics {
      * Transfers, CC_PAYMENTs, investment buys/redemptions, and non-cash revaluations NEVER inflate expenses.
      */
     fun isCountedExpense(tx: TransactionEntity): Boolean =
-        tx.type == TransactionType.EXPENSE || tx.type == TransactionType.CC_EXPENSE
+        !tx.isIgnored && (tx.type == TransactionType.EXPENSE || tx.type == TransactionType.CC_EXPENSE)
 
     /**
      * Regular income recognition: INCOME counts toward monthly earned cashflow without being distorted
      * by investment redemptions or transfers.
      */
     fun isCountedIncome(tx: TransactionEntity): Boolean =
-        tx.type == TransactionType.INCOME
+        !tx.isIgnored && tx.type == TransactionType.INCOME
 
     /**
      * Actual cash movement on a bank/cash/prepaid wallet account:
