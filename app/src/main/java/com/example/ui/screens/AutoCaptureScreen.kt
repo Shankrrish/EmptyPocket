@@ -51,6 +51,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.example.data.model.CategorizationRuleEntity
 import com.example.data.model.CategoryEntity
 import com.example.data.model.TransactionEntity
@@ -88,22 +91,37 @@ fun AutoCaptureScreen(
         selectedIds = parsed.filter { !it.isDuplicate }.map { it.id }.toSet()
     }
 
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var isScanning by remember { mutableStateOf(false) }
+    val runSmsScan: () -> Unit = {
+        if (!isScanning) {
+            isScanning = true
+            statusMessage = "Scanning SMS inbox locally..."
+            scope.launch {
+                val result = try {
+                    withContext(Dispatchers.IO) {
+                        scanDeviceBankSms(
+                            context = context,
+                            rules = state.rules,
+                            categories = state.categories,
+                            existingTransactions = state.allTransactions
+                        )
+                    }
+                } catch (t: Throwable) {
+                    SmsScanResult(emptyList(), 0, t.message ?: t.javaClass.simpleName)
+                }
+                updateCandidates(result.candidates)
+                statusMessage = smsScanMessage(result)
+                isScanning = false
+            }
+        }
+    }
+
     val smsPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            val scanned = scanDeviceBankSms(
-                context = context,
-                rules = state.rules,
-                categories = state.categories,
-                existingTransactions = state.allTransactions
-            )
-            updateCandidates(scanned)
-            statusMessage = if (scanned.isEmpty()) {
-                "Scanned SMS inbox locally: no Indian bank/UPI alerts found. You can also paste SMS/email receipts or import a CSV below."
-            } else {
-                "Scanned SMS inbox locally: found ${scanned.size} bank/UPI transaction(s)."
-            }
+            runSmsScan()
         } else {
             statusMessage = "SMS permission declined. Use Paste SMS / UPI Receipt or CSV Import below (zero permissions required)."
         }
@@ -199,14 +217,7 @@ fun AutoCaptureScreen(
                                         Manifest.permission.READ_SMS
                                     ) == PackageManager.PERMISSION_GRANTED
                                     if (hasPerm) {
-                                        val scanned = scanDeviceBankSms(
-                                            context = context,
-                                            rules = state.rules,
-                                            categories = state.categories,
-                                            existingTransactions = state.allTransactions
-                                        )
-                                        updateCandidates(scanned)
-                                        statusMessage = "Scanned SMS inbox locally: ${scanned.size} alert(s) matched."
+                                        runSmsScan()
                                     } else {
                                         smsPermissionLauncher.launch(Manifest.permission.READ_SMS)
                                     }
@@ -401,27 +412,43 @@ fun AutoCaptureScreen(
     }
 }
 
+private data class SmsScanResult(
+    val candidates: List<ParsedCaptureCandidate>,
+    val scannedCount: Int,
+    val error: String? = null
+)
+
+private fun smsScanMessage(r: SmsScanResult): String = when {
+    r.error != null -> "SMS scan failed: ${r.error}. You can still paste SMS text or import a CSV below."
+    r.scannedCount == 0 -> "No SMS found in the last 180 days (or the inbox is not readable). Make sure this app is allowed to read SMS."
+    r.candidates.isEmpty() -> "Checked ${r.scannedCount} SMS from the last 180 days: no bank/UPI transaction alerts recognised. Try Paste SMS below with a sample alert."
+    else -> "Checked ${r.scannedCount} SMS from the last 180 days: found ${r.candidates.size} bank/UPI transaction(s)."
+}
+
 private fun scanDeviceBankSms(
     context: Context,
     rules: List<CategorizationRuleEntity>,
     categories: List<CategoryEntity>,
-    existingTransactions: List<TransactionEntity>
-): List<ParsedCaptureCandidate> {
+    existingTransactions: List<TransactionEntity>,
+    lookbackDays: Int = 180,
+    maxMessages: Int = 5000
+): SmsScanResult {
     val results = mutableListOf<ParsedCaptureCandidate>()
-    runCatching {
+    var scanned = 0
+    val since = System.currentTimeMillis() - lookbackDays * 24L * 60L * 60L * 1000L
+    return try {
         context.contentResolver.query(
             Telephony.Sms.Inbox.CONTENT_URI,
             arrayOf(Telephony.Sms._ID, Telephony.Sms.BODY, Telephony.Sms.DATE),
-            null,
-            null,
+            "${Telephony.Sms.DATE} >= ?",
+            arrayOf(since.toString()),
             "${Telephony.Sms.DATE} DESC"
         )?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(Telephony.Sms._ID)
             val bodyCol = cursor.getColumnIndexOrThrow(Telephony.Sms.BODY)
             val dateCol = cursor.getColumnIndexOrThrow(Telephony.Sms.DATE)
-            var count = 0
-            while (cursor.moveToNext() && count < 100) {
-                count++
+            while (cursor.moveToNext() && scanned < maxMessages) {
+                scanned++
                 val id = cursor.getString(idCol)
                 val body = cursor.getString(bodyCol) ?: continue
                 val date = cursor.getLong(dateCol)
@@ -437,6 +464,8 @@ private fun scanDeviceBankSms(
                 }
             }
         }
+        SmsScanResult(results, scanned)
+    } catch (e: Exception) {
+        SmsScanResult(results, scanned, e.message ?: e.javaClass.simpleName)
     }
-    return results
 }

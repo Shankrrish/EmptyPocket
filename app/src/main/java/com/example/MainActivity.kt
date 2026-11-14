@@ -249,8 +249,7 @@ fun FinFlowApp(vm: FinanceViewModel = viewModel()) {
                         composable(ROUTE_DASHBOARD) {
                             DashboardScreen(
                                 state = state,
-                                onPreviousMonth = vm::previousMonth,
-                                onNextMonth = vm::nextMonth,
+                                onMonthSelected = vm::selectMonth,
                                 onToggleVisibility = vm::toggleBalanceVisibility,
                                 onNavigateToPlanning = { navigateToTab(ROUTE_PLANNING) },
                                 onNavigateToTransactions = {
@@ -277,8 +276,7 @@ fun FinFlowApp(vm: FinanceViewModel = viewModel()) {
                         composable(ROUTE_TRANSACTIONS) {
                             TransactionsScreen(
                                 state = state,
-                                onPreviousMonth = vm::previousMonth,
-                                onNextMonth = vm::nextMonth,
+                                onMonthSelected = vm::selectMonth,
                                 onToggleVisibility = vm::toggleBalanceVisibility,
                                 onSearchChange = vm::setSearchQuery,
                                 onFilterChange = vm::setTxFilter,
@@ -322,8 +320,7 @@ fun FinFlowApp(vm: FinanceViewModel = viewModel()) {
                         composable(ROUTE_PLANNING) {
                             PlanningScreen(
                                 state = state,
-                                onPreviousMonth = vm::previousMonth,
-                                onNextMonth = vm::nextMonth,
+                                onMonthSelected = vm::selectMonth,
                                 onToggleVisibility = vm::toggleBalanceVisibility,
                                 onSetBudget = vm::setBudget,
                                 onInspectBudgetCategory = { catId ->
@@ -367,8 +364,7 @@ fun FinFlowApp(vm: FinanceViewModel = viewModel()) {
                             ReportsScreen(
                                 state = state,
                                 onBack = { navController.popBackStack() },
-                                onPreviousMonth = vm::previousMonth,
-                                onNextMonth = vm::nextMonth,
+                                onMonthSelected = vm::selectMonth,
                                 onToggleVisibility = vm::toggleBalanceVisibility,
                                 onOpenNetWorthItems = { navController.navigate(ROUTE_NET_WORTH) },
                                 onOpenPortfolio = { navController.navigate(ROUTE_PORTFOLIO) }
@@ -498,6 +494,9 @@ fun FinFlowApp(vm: FinanceViewModel = viewModel()) {
             onSave = { tx, learnRule ->
                 vm.saveTransaction(tx, learnRule)
                 sheetVisible = false
+            },
+            onSaveAndContinue = { tx, learnRule ->
+                vm.saveTransaction(tx, learnRule)
             },
             onDelete = { tx ->
                 vm.deleteTransaction(tx)

@@ -153,10 +153,13 @@ data class TransactionEntity(
     val toAccountId: Long? = null,
     val notes: String = "",
     val isRecurring: Boolean = false,
+    val repeatCount: Int? = null,
+    val isIgnored: Boolean = false,
     val tags: String = "",
     val splitSummary: String = "",
     val linkedAssetType: String = "",
-    val linkedAssetId: Long? = null
+    val linkedAssetId: Long? = null,
+    val linkedLoanId: Long? = null
 )
 
 @Entity(tableName = "budgets")

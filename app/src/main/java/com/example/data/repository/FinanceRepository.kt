@@ -74,7 +74,8 @@ class FinanceRepository(
     val otherAssets = portfolioDao.observeOtherAssets()
 
     suspend fun seedDemoDataIfEmpty() {
-        if (dao.getCategoryCount() == 0) {
+        // Seed only a truly empty database so real/restored data is never mixed with demo data.
+        if (dao.getCategoryCount() == 0 && dao.getAccountCount() == 0) {
             populateDemoData()
         }
     }
@@ -192,7 +193,8 @@ class FinanceRepository(
                     salaryDay = restored.salaryDay,
                     smsAutoScanConsent = restored.smsAutoScanConsent,
                     homeCardsConfig = restored.homeCardsConfig,
-                    themeMode = restored.themeMode
+                    themeMode = restored.themeMode,
+                    fontStyle = restored.fontStyle
                 )
             )
         }

@@ -1,5 +1,6 @@
-package com.example.ui.screens
+﻿package com.example.ui.screens
 
+import com.example.util.MonthYear
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -28,8 +29,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -94,8 +93,7 @@ import com.example.util.formatCurrency
 @Composable
 fun DashboardScreen(
     state: FinanceUiState,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
+    onMonthSelected: (MonthYear) -> Unit,
     onToggleVisibility: () -> Unit,
     onNavigateToPlanning: () -> Unit,
     onNavigateToTransactions: () -> Unit,
@@ -177,8 +175,7 @@ fun DashboardScreen(
                         MonthSelectorBar(
                             selectedMonth = state.selectedMonth,
                             isBalanceHidden = state.isBalanceHidden,
-                            onPrevious = onPreviousMonth,
-                            onNext = onNextMonth,
+                            onMonthSelected = onMonthSelected,
                             onToggleVisibility = onToggleVisibility
                         )
                     }
@@ -205,8 +202,7 @@ fun DashboardScreen(
                         CurvedHeroSummaryHeader(
                             state = state,
                             includeMonthControls = summaryFirst,
-                            onPreviousMonth = onPreviousMonth,
-                            onNextMonth = onNextMonth,
+                            onMonthSelected = onMonthSelected,
                             onToggleVisibility = onToggleVisibility,
                             onNavigateToTransactions = onNavigateToTransactions,
                             onOpenHomeCustomization = onOpenHomeCustomization,
@@ -383,8 +379,7 @@ fun DashboardScreen(
 private fun CurvedHeroSummaryHeader(
     state: FinanceUiState,
     includeMonthControls: Boolean,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
+    onMonthSelected: (MonthYear) -> Unit,
     onToggleVisibility: () -> Unit,
     onNavigateToTransactions: () -> Unit,
     onOpenHomeCustomization: () -> Unit,
@@ -422,34 +417,10 @@ private fun CurvedHeroSummaryHeader(
                     )
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = onPreviousMonth,
-                        modifier = Modifier.testTag("prev_month_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            contentDescription = stringResource(R.string.cd_previous_month),
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                    Text(
-                        text = state.selectedMonth.displayLabel(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    IconButton(
-                        onClick = onNextMonth,
-                        modifier = Modifier.testTag("next_month_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = stringResource(R.string.cd_next_month),
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                }
+                com.example.ui.components.MonthNavigator(
+                    selectedMonth = state.selectedMonth,
+                    onMonthSelected = onMonthSelected
+                )
 
                 IconButton(
                     onClick = {
@@ -1311,8 +1282,7 @@ private fun DashboardScreenPreview() {
                 monthlyExpense = 42350.0,
                 homeCards = HomeCardConfig.defaultList()
             ),
-            onPreviousMonth = {},
-            onNextMonth = {},
+            onMonthSelected = {},
             onToggleVisibility = {},
             onNavigateToPlanning = {},
             onNavigateToTransactions = {},

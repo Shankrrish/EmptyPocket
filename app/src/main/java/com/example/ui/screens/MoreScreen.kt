@@ -62,7 +62,7 @@ fun MoreScreen(
     state: FinanceUiState,
     onSetThemeMode: (AppThemeMode) -> Unit = {},
     onSetFontStyle: (AppFontStyle) -> Unit = {},
-    onResetDemo: () -> Unit,
+    onResetDemo: (() -> Unit)? = null,
     onOpenPortfolio: () -> Unit,
     onOpenReports: () -> Unit,
     onOpenPlanning: () -> Unit,
@@ -109,9 +109,104 @@ fun MoreScreen(
         contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 104.dp)
     ) {
         item {
-            val activeThemeMode = state.settings.resolvedThemeMode()
-            Text("Appearance", style = MaterialTheme.typography.titleLarge)
+            // --- Section 1: Wealth & Reports ---
+            Text("Wealth & Reports", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(10.dp))
+            MoreHubRow(
+                emoji = "💎",
+                title = "Net Worth & Loans",
+                subtitle = "Net Worth: ${formatCurrency(state.netWorthSummary.netWorth, state.isBalanceHidden)} • ${state.netWorthItems.size} tracked loans/assets",
+                tintColor = semanticColors.income,
+                testTag = "hub_net_worth",
+                onClick = onOpenNetWorth
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            MoreHubRow(
+                emoji = "📊",
+                title = "Financial Reports",
+                subtitle = "Income, expense breakdown & monthly cashflow reports",
+                tintColor = MaterialTheme.colorScheme.primary,
+                testTag = "hub_reports",
+                onClick = onOpenReports
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            MoreHubRow(
+                emoji = "📈",
+                title = "Investment Portfolio",
+                subtitle = "Value: ${formatCurrency(state.portfolioSummary.totalCurrentValue, state.isBalanceHidden)} • MF, Stocks, PPF, EPF, Gold",
+                tintColor = semanticColors.income,
+                testTag = "hub_portfolio",
+                onClick = onOpenPortfolio
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // --- Section 2: Money Management ---
+            Text("Money Management", style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(10.dp))
+            MoreHubRow(
+                emoji = "🏦",
+                title = "Accounts & Credit Cards",
+                subtitle = "${state.accountSummaries.size} active accounts • ${state.cardSummaries.size} cards",
+                tintColor = MaterialTheme.colorScheme.primary,
+                testTag = "hub_accounts",
+                onClick = onOpenAccounts
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            MoreHubRow(
+                emoji = "🎯",
+                title = "Budgets, Recurring Bills & Goals",
+                subtitle = "Planned: ${formatCurrency(state.totalBudgetPlanned, state.isBalanceHidden)} • ${state.savingsGoals.size} savings goals",
+                tintColor = MaterialTheme.colorScheme.secondary,
+                testTag = "hub_planning",
+                onClick = onOpenPlanning
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // --- Section 3: Automation & Security ---
+            Text("Automation & Security", style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(10.dp))
+            MoreHubRow(
+                emoji = "📲",
+                title = "India Auto-Capture (SMS / UPI / CSV)",
+                subtitle = "Local-first parsing & duplicate protection",
+                tintColor = semanticColors.cardPayment,
+                testTag = "hub_auto_capture",
+                onClick = onOpenAutoCapture
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            MoreHubRow(
+                emoji = "✨",
+                title = "Smart Categorization Rules",
+                subtitle = "${state.rules.count { it.isEnabled }} active merchant rules",
+                tintColor = MaterialTheme.colorScheme.primary,
+                testTag = "hub_smart_rules",
+                onClick = onOpenRules
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            MoreHubRow(
+                emoji = "🔐",
+                title = "Privacy, Lock & Backups",
+                subtitle = if (state.settings.appLockEnabled) "PIN Lock Active • JSON/CSV Export" else "App Lock Off • JSON/CSV Export",
+                tintColor = MaterialTheme.colorScheme.secondary,
+                testTag = "hub_privacy_settings",
+                onClick = onOpenPrivacySettings
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // --- Section 4: Appearance & Layout ---
+            Text("Appearance & Layout", style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(10.dp))
+            MoreHubRow(
+                emoji = "🎨",
+                title = "Customize Homepage Cards",
+                subtitle = "${state.homeCards.count { it.visible }} cards shown on Home",
+                tintColor = MaterialTheme.colorScheme.primary,
+                testTag = "hub_customize_home",
+                onClick = onOpenHomeCustomization
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            val activeThemeMode = state.settings.resolvedThemeMode()
             FinSurfaceCard(
                 shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
@@ -173,8 +268,8 @@ fun MoreScreen(
                                     )
                                     .border(
                                         BorderStroke(
-                                            width = if (selected) 1.25.dp else 0.75.dp,
-                                            color = if (selected) MaterialTheme.colorScheme.primary else semanticColors.hairlineBorder
+                                             width = if (selected) 1.25.dp else 0.75.dp,
+                                             color = if (selected) MaterialTheme.colorScheme.primary else semanticColors.hairlineBorder
                                         ),
                                         shape = RoundedCornerShape(12.dp)
                                     )
@@ -278,106 +373,21 @@ fun MoreScreen(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
 
-            Text("Investments & Insights", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(10.dp))
-            MoreHubRow(
-                emoji = "📈",
-                title = "Investment Portfolio",
-                subtitle = "Value: ${formatCurrency(state.portfolioSummary.totalCurrentValue, state.isBalanceHidden)} • MF, Stocks, PPF, EPF, Gold",
-                tintColor = semanticColors.income,
-                testTag = "hub_portfolio",
-                onClick = onOpenPortfolio
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            MoreHubRow(
-                emoji = "📊",
-                title = "Financial Reports & Net Worth",
-                subtitle = "Net Worth: ${formatCurrency(state.netWorthSummary.netWorth, state.isBalanceHidden)} • Spending & Account reports",
-                tintColor = MaterialTheme.colorScheme.primary,
-                testTag = "hub_reports",
-                onClick = onOpenReports
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            MoreHubRow(
-                emoji = "🎯",
-                title = "Budgets, Recurring Bills & Goals",
-                subtitle = "Planned: ${formatCurrency(state.totalBudgetPlanned, state.isBalanceHidden)} • ${state.savingsGoals.size} savings goals",
-                tintColor = MaterialTheme.colorScheme.secondary,
-                testTag = "hub_planning",
-                onClick = onOpenPlanning
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            MoreHubRow(
-                emoji = "🏦",
-                title = "Manage Accounts & Credit Cards",
-                subtitle = "${state.accountSummaries.size} active accounts • ${state.cardSummaries.size} cards",
-                tintColor = MaterialTheme.colorScheme.primary,
-                testTag = "hub_accounts",
-                onClick = onOpenAccounts
-            )
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text("Personalization & Automation", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(10.dp))
-            MoreHubRow(
-                emoji = "💎",
-                title = "Loans & Manual Net Worth Items",
-                subtitle = "${state.netWorthItems.size} tracked loans or manual items",
-                tintColor = semanticColors.warning,
-                testTag = "hub_net_worth",
-                onClick = onOpenNetWorth
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            MoreHubRow(
-                emoji = "🎨",
-                title = "Customize Homepage Cards",
-                subtitle = "${state.homeCards.count { it.visible }} cards shown on Home",
-                tintColor = MaterialTheme.colorScheme.primary,
-                testTag = "hub_customize_home",
-                onClick = onOpenHomeCustomization
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            MoreHubRow(
-                emoji = "🔐",
-                title = "Privacy, Lock & Backups",
-                subtitle = if (state.settings.appLockEnabled) "PIN Lock Active • JSON/CSV Export" else "App Lock Off • JSON/CSV Export",
-                tintColor = MaterialTheme.colorScheme.secondary,
-                testTag = "hub_privacy_settings",
-                onClick = onOpenPrivacySettings
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            MoreHubRow(
-                emoji = "✨",
-                title = "Smart Categorization Rules",
-                subtitle = "${state.rules.count { it.isEnabled }} active merchant rules",
-                tintColor = MaterialTheme.colorScheme.primary,
-                testTag = "hub_smart_rules",
-                onClick = onOpenRules
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            MoreHubRow(
-                emoji = "📲",
-                title = "India Auto-Capture (SMS / UPI / CSV)",
-                subtitle = "Local-first parsing & duplicate protection",
-                tintColor = semanticColors.cardPayment,
-                testTag = "hub_auto_capture",
-                onClick = onOpenAutoCapture
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-
-            OutlinedButton(
-                onClick = { showResetConfirm = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("reset_demo_button"),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = semanticColors.expense),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Icon(Icons.Default.RestartAlt, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.reset_demo_data))
+            if (onResetDemo != null) {
+                Spacer(modifier = Modifier.height(24.dp))
+                OutlinedButton(
+                    onClick = { showResetConfirm = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("reset_demo_button"),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = semanticColors.expense),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Icon(Icons.Default.RestartAlt, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.reset_demo_data))
+                }
             }
         }
     }

@@ -199,8 +199,7 @@ class S23AmoledThemeTest {
                 Box(modifier = Modifier.fillMaxSize()) {
                     DashboardScreen(
                         state = s23SampleState(AppThemeMode.AMOLED_DARK),
-                        onPreviousMonth = {},
-                        onNextMonth = {},
+                        onMonthSelected = {},
                         onToggleVisibility = {},
                         onNavigateToPlanning = {},
                         onNavigateToTransactions = {},
@@ -252,8 +251,7 @@ class S23AmoledThemeTest {
                 observedIsAmoled = FinFlowTheme.colors.isAmoledDark
                 TransactionsScreen(
                     state = s23SampleState(AppThemeMode.CRISP_LIGHT),
-                    onPreviousMonth = {},
-                    onNextMonth = {},
+                    onMonthSelected = {},
                     onToggleVisibility = {},
                     onSearchChange = {},
                     onFilterChange = {},
@@ -355,8 +353,7 @@ class S23AmoledThemeTest {
                 ReportsScreen(
                     state = s23SampleState(AppThemeMode.AMOLED_DARK),
                     onBack = {},
-                    onPreviousMonth = {},
-                    onNextMonth = {},
+                    onMonthSelected = {},
                     onToggleVisibility = {},
                     onOpenNetWorthItems = {},
                     onOpenPortfolio = {}
@@ -432,8 +429,7 @@ class S23AmoledThemeTest {
             FinFlowTheme(themeMode = AppThemeMode.AMOLED_DARK) {
                 com.example.ui.screens.PlanningScreen(
                     state = stateWithRecurring,
-                    onPreviousMonth = {},
-                    onNextMonth = {},
+                    onMonthSelected = {},
                     onToggleVisibility = {},
                     onSetBudget = { _, _, _ -> },
                     onInspectBudgetCategory = {},

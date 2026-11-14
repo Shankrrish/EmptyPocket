@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -459,6 +461,69 @@ fun PrivacySettingsScreen(
                             Text("Export Transactions (CSV)")
                         }
                     }
+                }
+            }
+
+            // Automatic monthly backup
+            item { AutoBackupCard() }
+
+            // Crash logs
+            item {
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                var crashText by remember { mutableStateOf<String?>(null) }
+                var crashCount by remember { mutableStateOf(com.example.util.CrashLogger.list(ctx).size) }
+                FinSurfaceCard(shape = RoundedCornerShape(20.dp)) {
+                    Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Crash Logs", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Crashes are saved on this device only. $crashCount log(s) stored. Share them to help fix problems.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = semanticColors.textSecondary
+                        )
+                        OutlinedButton(
+                            onClick = {
+                                crashCount = com.example.util.CrashLogger.list(ctx).size
+                                crashText = com.example.util.CrashLogger.readAll(ctx).ifBlank { "No crash logs recorded." }
+                            },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth().testTag("view_crash_logs_button")
+                        ) { Text("View Crash Logs") }
+                    }
+                }
+                crashText?.let { text ->
+                    AlertDialog(
+                        onDismissRequest = { crashText = null },
+                        title = { Text("Crash Logs") },
+                        text = {
+                            androidx.compose.foundation.layout.Box(
+                                modifier = Modifier
+                                    .heightIn(max = 380.dp)
+                                    .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                            ) {
+                                Text(text, style = MaterialTheme.typography.bodySmall)
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(android.content.Intent.EXTRA_SUBJECT, "FinFlow crash logs")
+                                    putExtra(android.content.Intent.EXTRA_TEXT, text)
+                                }
+                                ctx.startActivity(android.content.Intent.createChooser(send, "Share crash logs"))
+                            }) { Text("Share") }
+                        },
+                        dismissButton = {
+                            Row {
+                                TextButton(onClick = {
+                                    com.example.util.CrashLogger.clear(ctx)
+                                    crashCount = 0
+                                    crashText = null
+                                }) { Text("Clear") }
+                                TextButton(onClick = { crashText = null }) { Text("Close") }
+                            }
+                        }
+                    )
                 }
             }
 

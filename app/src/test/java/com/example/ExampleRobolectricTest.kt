@@ -95,8 +95,7 @@ class ExampleRobolectricTest {
             FinFlowTheme {
                 DashboardScreen(
                     state = sampleState(),
-                    onPreviousMonth = {},
-                    onNextMonth = {},
+                    onMonthSelected = {},
                     onToggleVisibility = {},
                     onNavigateToPlanning = {},
                     onNavigateToTransactions = {},

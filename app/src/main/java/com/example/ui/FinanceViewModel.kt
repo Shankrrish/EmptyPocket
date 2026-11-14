@@ -299,8 +299,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FinanceUiState())
 
-    fun previousMonth() { selectedMonth.value = selectedMonth.value.plusMonths(-1) }
-    fun nextMonth() { selectedMonth.value = selectedMonth.value.plusMonths(1) }
+    fun selectMonth(month: MonthYear) { selectedMonth.value = month }
     fun toggleBalanceVisibility() { isBalanceHidden.value = !isBalanceHidden.value }
     fun setSearchQuery(q: String) { searchQuery.value = q }
     fun setTxFilter(f: TxFilter) { txFilter.value = f }
@@ -338,6 +337,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     fun saveTransaction(tx: TransactionEntity, learnRule: Boolean = false) = viewModelScope.launch {
         repository.saveTransaction(tx)
+        if (tx.id == 0L && tx.isPaid && tx.linkedLoanId != null) {
+            uiState.value.netWorthItems.find { it.id == tx.linkedLoanId }?.let { loan ->
+                repository.saveNetWorthItem(loan.copy(amount = (loan.amount - tx.amount).coerceAtLeast(0.0)))
+            }
+        }
         if (learnRule && tx.categoryId != null && tx.title.trim().length >= 3) {
             val keyword = tx.title.trim().split(" ").take(2).joinToString(" ")
             val alreadyExists = uiState.value.rules.any { it.keyword.equals(keyword, ignoreCase = true) }

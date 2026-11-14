@@ -82,6 +82,7 @@ fun AddEditTransactionSheet(
     editingTx: TransactionEntity?,
     onDismiss: () -> Unit,
     onSave: (TransactionEntity, Boolean) -> Unit,
+    onSaveAndContinue: ((TransactionEntity, Boolean) -> Unit)? = null,
     onDelete: (TransactionEntity) -> Unit,
     onCreateCustomCategory: (String, CategoryType, String, Long, (Long) -> Unit) -> Unit = { _, _, _, _, _ -> }
 ) {
@@ -102,6 +103,10 @@ fun AddEditTransactionSheet(
     var title by remember { mutableStateOf(editingTx?.title ?: "") }
     var isPaid by remember { mutableStateOf(editingTx?.isPaid ?: true) }
     var isRecurring by remember { mutableStateOf(editingTx?.isRecurring ?: false) }
+    var repeatCountText by remember { mutableStateOf(editingTx?.repeatCount?.toString() ?: "") }
+    var isIgnored by remember { mutableStateOf(editingTx?.isIgnored ?: false) }
+    var linkedLoanId by remember { mutableStateOf(editingTx?.linkedLoanId) }
+    var showAllTypes by remember { mutableStateOf(editingTx != null) }
     var notes by remember { mutableStateOf(editingTx?.notes ?: "") }
     var tags by remember { mutableStateOf(editingTx?.tags ?: "") }
     var dateMillis by remember { mutableStateOf(editingTx?.dateMillis ?: System.currentTimeMillis()) }
@@ -242,12 +247,13 @@ fun AddEditTransactionSheet(
                 }
             }
 
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                TransactionType.entries.forEach { t ->
-                    val label = when (t) {
+            if (!showAllTypes) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val currentLabel = when (type) {
                         TransactionType.EXPENSE -> "💸 Expense"
                         TransactionType.CC_EXPENSE -> "💳 Card Spend"
                         TransactionType.CC_PAYMENT -> "🧾 Pay Card"
@@ -260,34 +266,63 @@ fun AddEditTransactionSheet(
                         TransactionType.INTEREST_CREDIT -> "🏛️ Interest"
                     }
                     FilterChip(
-                        selected = type == t,
-                        onClick = {
-                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            type = t
-                            when (t) {
-                                TransactionType.CC_EXPENSE -> {
-                                    selectedAccountId = null
-                                    if (selectedCardId == null) selectedCardId = state.creditCards.firstOrNull()?.id
-                                }
-                                TransactionType.CC_PAYMENT -> {
-                                    if (selectedAccountId == null) selectedAccountId = state.accounts.firstOrNull()?.id
-                                    if (selectedCardId == null) selectedCardId = state.creditCards.firstOrNull()?.id
-                                }
-                                TransactionType.VALUATION_ADJUSTMENT,
-                                TransactionType.INTEREST_CREDIT -> {
-                                    selectedCardId = null
-                                    selectedAccountId = null
-                                }
-                                else -> {
-                                    selectedCardId = null
-                                    if (selectedAccountId == null) selectedAccountId = state.accounts.firstOrNull()?.id
-                                }
-                            }
-                        },
-                        label = { Text(label) },
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.testTag("sheet_type_${t.name.lowercase()}")
+                        selected = true,
+                        onClick = { showAllTypes = true },
+                        label = { Text(currentLabel) },
+                        shape = RoundedCornerShape(14.dp)
                     )
+                    TextButton(onClick = { showAllTypes = true }) {
+                        Text("Change type")
+                    }
+                }
+            } else {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    TransactionType.entries.forEach { t ->
+                        val label = when (t) {
+                            TransactionType.EXPENSE -> "💸 Expense"
+                            TransactionType.CC_EXPENSE -> "💳 Card Spend"
+                            TransactionType.CC_PAYMENT -> "🧾 Pay Card"
+                            TransactionType.INCOME -> "💰 Income"
+                            TransactionType.TRANSFER -> "🔄 Transfer"
+                            TransactionType.INVESTMENT_BUY -> "📈 Invest Buy"
+                            TransactionType.INVESTMENT_SELL -> "💵 Invest Sell"
+                            TransactionType.INVESTMENT_INCOME -> "🪙 Invest Income"
+                            TransactionType.VALUATION_ADJUSTMENT -> "📊 Valuation Adj."
+                            TransactionType.INTEREST_CREDIT -> "🏛️ Interest"
+                        }
+                        FilterChip(
+                            selected = type == t,
+                            onClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                type = t
+                                when (t) {
+                                    TransactionType.CC_EXPENSE -> {
+                                        selectedAccountId = null
+                                        if (selectedCardId == null) selectedCardId = state.creditCards.firstOrNull()?.id
+                                    }
+                                    TransactionType.CC_PAYMENT -> {
+                                        if (selectedAccountId == null) selectedAccountId = state.accounts.firstOrNull()?.id
+                                        if (selectedCardId == null) selectedCardId = state.creditCards.firstOrNull()?.id
+                                    }
+                                    TransactionType.VALUATION_ADJUSTMENT,
+                                    TransactionType.INTEREST_CREDIT -> {
+                                        selectedCardId = null
+                                        selectedAccountId = null
+                                    }
+                                    else -> {
+                                        selectedCardId = null
+                                        if (selectedAccountId == null) selectedAccountId = state.accounts.firstOrNull()?.id
+                                    }
+                                }
+                            },
+                            label = { Text(label) },
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.testTag("sheet_type_${t.name.lowercase()}")
+                        )
+                    }
                 }
             }
 
@@ -395,11 +430,43 @@ fun AddEditTransactionSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val dateStr = DateUtils.formatIsoDate(dateMillis)
-                OutlinedButton(
-                    onClick = { showDatePicker = true },
-                    modifier = Modifier.testTag("sheet_date_button")
+                val nowMillis = remember { System.currentTimeMillis() }
+                val dayMs = 86_400_000L
+                val isToday = remember(dateMillis) {
+                    val cal1 = java.util.Calendar.getInstance().apply { timeInMillis = dateMillis }
+                    val cal2 = java.util.Calendar.getInstance().apply { timeInMillis = nowMillis }
+                    cal1.get(java.util.Calendar.YEAR) == cal2.get(java.util.Calendar.YEAR) &&
+                        cal1.get(java.util.Calendar.DAY_OF_YEAR) == cal2.get(java.util.Calendar.DAY_OF_YEAR)
+                }
+                val isYesterday = remember(dateMillis) {
+                    val cal1 = java.util.Calendar.getInstance().apply { timeInMillis = dateMillis }
+                    val cal2 = java.util.Calendar.getInstance().apply { timeInMillis = nowMillis - dayMs }
+                    cal1.get(java.util.Calendar.YEAR) == cal2.get(java.util.Calendar.YEAR) &&
+                        cal1.get(java.util.Calendar.DAY_OF_YEAR) == cal2.get(java.util.Calendar.DAY_OF_YEAR)
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(dateStr)
+                    FilterChip(
+                        selected = isToday,
+                        onClick = { dateMillis = System.currentTimeMillis() },
+                        label = { Text("Today") },
+                        shape = RoundedCornerShape(14.dp)
+                    )
+                    FilterChip(
+                        selected = isYesterday,
+                        onClick = { dateMillis = System.currentTimeMillis() - dayMs },
+                        label = { Text("Yesterday") },
+                        shape = RoundedCornerShape(14.dp)
+                    )
+                    FilterChip(
+                        selected = !isToday && !isYesterday,
+                        onClick = { showDatePicker = true },
+                        label = { Text(if (!isToday && !isYesterday) dateStr else "Others...") },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.testTag("sheet_date_button")
+                    )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -715,6 +782,144 @@ fun AddEditTransactionSheet(
                 )
             }
 
+            if (isRecurring) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = repeatCountText,
+                        onValueChange = { repeatCountText = it.filter { ch -> ch.isDigit() }.take(3) },
+                        label = { Text("Repeat count (months, blank = unlimited)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(3, 6, 12).forEach { count ->
+                            FilterChip(
+                                selected = repeatCountText == count.toString(),
+                                onClick = {
+                                    repeatCountText = if (repeatCountText == count.toString()) "" else count.toString()
+                                },
+                                label = { Text("$count mo") },
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            val loans = remember(state.netWorthItems) { state.netWorthItems.filter { it.category.isLiability } }
+            if (type == TransactionType.EXPENSE && loans.isNotEmpty()) {
+                var loanMenuExpanded by remember { mutableStateOf(false) }
+                val selectedLoan = loans.find { it.id == linkedLoanId }
+                ExposedDropdownMenuBox(
+                    expanded = loanMenuExpanded,
+                    onExpandedChange = { loanMenuExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedLoan?.let { "${it.name} (${formatCurrency(it.amount, state.isBalanceHidden)})" } ?: "None",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Link to Loan (reduces remaining balance)") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = loanMenuExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = loanMenuExpanded,
+                        onDismissRequest = { loanMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("None") },
+                            onClick = {
+                                linkedLoanId = null
+                                loanMenuExpanded = false
+                            }
+                        )
+                        loans.forEach { loan ->
+                            DropdownMenuItem(
+                                text = { Text("${loan.name} (${formatCurrency(loan.amount, state.isBalanceHidden)})") },
+                                onClick = {
+                                    linkedLoanId = loan.id
+                                    loanMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (type == TransactionType.EXPENSE || type == TransactionType.CC_EXPENSE || type == TransactionType.INCOME) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Ignore in totals", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Exclude from monthly income/expense reports",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isIgnored,
+                        onCheckedChange = { isIgnored = it }
+                    )
+                }
+            }
+
+            fun tryBuildTransaction(): TransactionEntity? {
+                val amt = amountText.toDoubleOrNull()
+                if (amt == null || amt <= 0.0) {
+                    amountError = true
+                    return null
+                }
+                val splitEncoded = if (
+                    isSplitEnabled &&
+                    (type == TransactionType.EXPENSE || type == TransactionType.CC_EXPENSE) &&
+                    selectedCategoryId != null &&
+                    splitSecondaryCategoryId != null
+                ) {
+                    val firstAmt = (splitPrimaryAmountText.toDoubleOrNull() ?: (amt / 2.0)).coerceIn(0.01, amt)
+                    val secondAmt = (amt - firstAmt).coerceAtLeast(0.0)
+                    if (secondAmt > 0.0) {
+                        SplitAllocation.encode(
+                            listOf(
+                                SplitAllocation(selectedCategoryId!!, firstAmt),
+                                SplitAllocation(splitSecondaryCategoryId!!, secondAmt)
+                            )
+                        )
+                    } else ""
+                } else ""
+
+                val defaultTitle = when (type) {
+                    TransactionType.CC_EXPENSE -> "Card Purchase"
+                    TransactionType.CC_PAYMENT -> "Card Bill Payment"
+                    else -> type.label
+                }
+                return TransactionEntity(
+                    id = editingTx?.id ?: 0L,
+                    title = title.ifBlank { defaultTitle },
+                    amount = amt,
+                    type = type,
+                    dateMillis = dateMillis,
+                    isPaid = isPaid,
+                    categoryId = if (supportsCategories) selectedCategoryId else null,
+                    accountId = if (needsSourceAccount) selectedAccountId else null,
+                    creditCardId = if (type == TransactionType.CC_EXPENSE || type == TransactionType.CC_PAYMENT) selectedCardId else null,
+                    toAccountId = if (type == TransactionType.TRANSFER) toAccountId else null,
+                    notes = notes,
+                    isRecurring = isRecurring,
+                    repeatCount = if (isRecurring) repeatCountText.toIntOrNull()?.takeIf { it > 0 } else null,
+                    isIgnored = isIgnored,
+                    tags = tags,
+                    splitSummary = splitEncoded,
+                    linkedLoanId = if (type == TransactionType.EXPENSE) linkedLoanId else null
+                )
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -729,57 +934,33 @@ fun AddEditTransactionSheet(
                     ) {
                         Text("Delete")
                     }
+                } else if (onSaveAndContinue != null && (type == TransactionType.EXPENSE || type == TransactionType.CC_EXPENSE || type == TransactionType.INCOME)) {
+                    OutlinedButton(
+                        onClick = {
+                            val tx = tryBuildTransaction() ?: return@OutlinedButton
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onSaveAndContinue(tx, learnMerchantRule)
+                            amountText = ""
+                            amountError = false
+                            title = ""
+                            notes = ""
+                            tags = ""
+                            isSplitEnabled = false
+                            splitPrimaryAmountText = ""
+                            learnMerchantRule = false
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 50.dp)
+                    ) {
+                        Text("Save & New")
+                    }
                 }
                 Button(
                     onClick = {
-                        val amt = amountText.toDoubleOrNull()
-                        if (amt == null || amt <= 0.0) {
-                            amountError = true
-                            return@Button
-                        }
-                        val splitEncoded = if (
-                            isSplitEnabled &&
-                            (type == TransactionType.EXPENSE || type == TransactionType.CC_EXPENSE) &&
-                            selectedCategoryId != null &&
-                            splitSecondaryCategoryId != null
-                        ) {
-                            val firstAmt = (splitPrimaryAmountText.toDoubleOrNull() ?: (amt / 2.0)).coerceIn(0.01, amt)
-                            val secondAmt = (amt - firstAmt).coerceAtLeast(0.0)
-                            if (secondAmt > 0.0) {
-                                SplitAllocation.encode(
-                                    listOf(
-                                        SplitAllocation(selectedCategoryId!!, firstAmt),
-                                        SplitAllocation(splitSecondaryCategoryId!!, secondAmt)
-                                    )
-                                )
-                            } else ""
-                        } else ""
-
-                        val defaultTitle = when (type) {
-                            TransactionType.CC_EXPENSE -> "Card Purchase"
-                            TransactionType.CC_PAYMENT -> "Card Bill Payment"
-                            else -> type.label
-                        }
+                        val tx = tryBuildTransaction() ?: return@Button
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onSave(
-                            TransactionEntity(
-                                id = editingTx?.id ?: 0L,
-                                title = title.ifBlank { defaultTitle },
-                                amount = amt,
-                                type = type,
-                                dateMillis = dateMillis,
-                                isPaid = isPaid,
-                                categoryId = if (supportsCategories) selectedCategoryId else null,
-                                accountId = if (needsSourceAccount) selectedAccountId else null,
-                                creditCardId = if (type == TransactionType.CC_EXPENSE || type == TransactionType.CC_PAYMENT) selectedCardId else null,
-                                toAccountId = if (type == TransactionType.TRANSFER) toAccountId else null,
-                                notes = notes,
-                                isRecurring = isRecurring,
-                                tags = tags,
-                                splitSummary = splitEncoded
-                            ),
-                            learnMerchantRule
-                        )
+                        onSave(tx, learnMerchantRule)
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = when (type) {
