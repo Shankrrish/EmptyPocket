@@ -86,6 +86,7 @@ import com.example.ui.components.EmptyStateCard
 import com.example.ui.components.FinSurfaceCard
 import com.example.ui.components.InteractiveDonutChart
 import com.example.ui.components.MonthSelectorBar
+import com.example.ui.components.SculptedActionIcon
 import com.example.ui.components.accountEmoji
 import com.example.ui.theme.FinFlowTheme
 import com.example.util.formatCurrency
@@ -320,7 +321,7 @@ fun DashboardScreen(
                                     shape = RoundedCornerShape(11.dp)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Column {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(
                                         text = "More Insights & Breakdown",
                                         style = MaterialTheme.typography.titleSmall,
@@ -328,7 +329,7 @@ fun DashboardScreen(
                                     )
                                     Text(
                                         text = "Safe-to-Spend • ${state.insights.size} insights • Category chart",
-                                        style = MaterialTheme.typography.labelSmall,
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = semanticColors.textSecondary
                                     )
                                 }
@@ -599,7 +600,10 @@ private fun HeroBreakdownCell(
     modifier: Modifier = Modifier
 ) {
     val semanticColors = FinFlowTheme.colors
-    Column(modifier = modifier) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (indicatorIcon != null) {
                 Icon(
@@ -618,7 +622,6 @@ private fun HeroBreakdownCell(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.titleMedium,
@@ -695,48 +698,93 @@ private fun VerticalAccountsCardSection(
                     state.accountSummaries.forEachIndexed { idx, summary ->
                         val acc = summary.account
                         val accColor = Color(acc.colorHex)
+                        val accountSubtitle = buildList {
+                            if (acc.bankName.isNotBlank() && !acc.name.contains(acc.bankName, ignoreCase = true)) {
+                                add(acc.bankName)
+                            }
+                            if (acc.maskedNumber.isNotBlank()) add(acc.maskedNumber)
+                        }.joinToString(" • ")
+
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onInspectAccount(acc.id) }
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                                .padding(horizontal = 16.dp, vertical = 14.dp)
                                 .testTag("dashboard_account_card_${acc.id}")
                         ) {
                             EmojiBadge(
                                 emoji = accountEmoji(acc.type, acc.emoji),
                                 tintColor = accColor,
-                                size = 42.dp,
-                                emojiSize = 20.sp,
-                                shape = RoundedCornerShape(13.dp),
+                                size = 44.dp,
+                                emojiSize = 21.sp,
+                                shape = RoundedCornerShape(14.dp),
                                 contentDescription = acc.name
                             )
                             Spacer(modifier = Modifier.width(14.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = acc.name,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = formatCurrency(summary.currentBalance, state.isBalanceHidden),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (summary.currentBalance >= 0) semanticColors.income else semanticColors.expense
-                                )
-                            }
-                            IconButton(
-                                onClick = { onQuickAddForAccount(acc.id) },
-                                modifier = Modifier.testTag("quick_add_account_${acc.id}")
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Add transaction for ${acc.name}",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = acc.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = accColor.copy(alpha = if (semanticColors.isAmoledDark) 0.16f else 0.10f)
+                                    ) {
+                                        Text(
+                                            text = acc.type.shortBadge,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (semanticColors.isAmoledDark) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                accColor
+                                            },
+                                            maxLines = 1,
+                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = formatCurrency(summary.currentBalance, state.isBalanceHidden),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (summary.currentBalance >= 0) semanticColors.income else semanticColors.expense
+                                    )
+                                    if (accountSubtitle.isNotBlank()) {
+                                        Text(
+                                            text = "• $accountSubtitle",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = semanticColors.textSecondary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
                             }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            SculptedActionIcon(
+                                icon = Icons.Default.Add,
+                                contentDescription = "Add transaction for ${acc.name}",
+                                tint = MaterialTheme.colorScheme.primary,
+                                onClick = { onQuickAddForAccount(acc.id) },
+                                testTag = "quick_add_account_${acc.id}"
+                            )
                         }
                         if (idx < state.accountSummaries.lastIndex) {
                             HorizontalDivider(
@@ -822,16 +870,17 @@ private fun CreditCardsSection(
                                         contentDescription = summary.card.name
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
-                                    Column {
+                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         Text(
                                             text = summary.card.name,
-                                            style = MaterialTheme.typography.labelLarge,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurface,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
-                                            text = summary.card.brand,
+                                            text = "${summary.card.brand} Credit Card",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = semanticColors.textSecondary
                                         )
@@ -855,7 +904,7 @@ private fun CreditCardsSection(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.Bottom
                             ) {
-                                Column {
+                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                     Text(
                                         text = "Outstanding",
                                         style = MaterialTheme.typography.labelSmall,
@@ -1007,15 +1056,15 @@ private fun SafeToSpendCard(
                         contentDescription = "Safe to Spend"
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(
                             text = "Safe to Spend",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "${formatCurrency(safe.dailyAllowance, state.isBalanceHidden)} / day (${safe.remainingDays}d left)",
-                            style = MaterialTheme.typography.labelSmall,
+                            text = "${formatCurrency(safe.dailyAllowance, state.isBalanceHidden)} / day • ${safe.remainingDays}d left",
+                            style = MaterialTheme.typography.bodySmall,
                             color = semanticColors.textSecondary
                         )
                     }
@@ -1107,10 +1156,13 @@ private fun MonthlyInsightsCard(
                         contentDescription = insight.title
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text(
                             text = insight.title,
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(

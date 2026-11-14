@@ -235,6 +235,8 @@ class S23AmoledThemeTest {
         composeRule.onNodeWithText("Safe Cash / Day").assertIsDisplayed()
         composeRule.onNodeWithText("Total CC Balance").assertIsDisplayed()
         composeRule.onNodeWithTag("dashboard_accounts_section").assertIsDisplayed()
+        composeRule.onNodeWithText("HDFC Salary").assertIsDisplayed()
+        composeRule.onNodeWithText("Bank").assertIsDisplayed()
         composeRule.onNodeWithTag("nav_tab_dashboard").assertIsDisplayed()
         composeRule.onNodeWithTag("main_add_fab").assertIsDisplayed()
     }
@@ -557,6 +559,14 @@ class S23AmoledThemeTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("font_style_jakarta_sans").assertIsDisplayed()
+        composeRule.onNodeWithTag("font_style_inter").performClick()
+        composeRule.waitForIdle()
+        assertEquals(AppFontStyle.INTER, latestFont)
+
+        composeRule.onNodeWithTag("font_style_roboto").performClick()
+        composeRule.waitForIdle()
+        assertEquals(AppFontStyle.ROBOTO, latestFont)
+
         composeRule.onNodeWithTag("font_style_manrope").performClick()
         composeRule.waitForIdle()
         assertEquals(AppFontStyle.MANROPE, latestFont)
@@ -634,6 +644,12 @@ class S23AmoledThemeTest {
         composeRule.onNodeWithTag("quick_add_popup_card").assertIsDisplayed()
         composeRule.onNodeWithText("Quick Transaction").assertIsDisplayed()
         composeRule.onNodeWithTag("fab_expense_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("fab_income_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("fab_cc_expense_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("fab_cc_payment_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("fab_transfer_button").assertIsDisplayed()
+        composeRule.onNodeWithText("Bank & Cash").assertIsDisplayed()
+        composeRule.onNodeWithText("Salary & Inflow").assertIsDisplayed()
         composeRule.onNodeWithTag("quick_add_scrim").performClick()
         composeRule.waitForIdle()
         assertTrue(dismissed)

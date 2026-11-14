@@ -3,11 +3,11 @@ package com.example.data.model
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-enum class AccountType(val displayLabel: String) {
-    CHECKING("Bank Savings"),
-    SAVINGS("Bank Savings / Current"),
-    CASH("Cash Account"),
-    E_WALLET("Prepaid E-Wallet");
+enum class AccountType(val displayLabel: String, val shortBadge: String) {
+    CHECKING("Bank Savings", "Bank"),
+    SAVINGS("Bank Savings / Current", "Savings"),
+    CASH("Cash Account", "Cash"),
+    E_WALLET("Prepaid E-Wallet", "Wallet");
 
     fun isBank(): Boolean = this == CHECKING || this == SAVINGS
     fun isCash(): Boolean = this == CASH
@@ -239,6 +239,8 @@ enum class AppFontStyle(
     val tagline: String
 ) {
     JAKARTA_SANS("Plus Jakarta Sans", "Jakarta", "Crisp geometric fintech • Default"),
+    INTER("Inter", "Inter", "Crisp fintech clarity • Mobills style"),
+    ROBOTO("Roboto", "Roboto", "Classic Android Mobills look"),
     MANROPE("Manrope", "Manrope", "Modern editorial balance"),
     OUTFIT("Outfit", "Outfit", "Clean rounded contemporary");
 

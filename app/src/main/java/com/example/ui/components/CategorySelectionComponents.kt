@@ -47,8 +47,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
@@ -127,14 +130,34 @@ fun CategoryCardGrid(
                                         label = "catBorder_${cat.id}"
                                     )
 
+                                    val tileTop = lerp(tileBg, Color.White, if (semanticColors.isAmoledDark) 0.40f else 0.55f)
+                                    val tileBottom = lerp(tileBg, catColor, if (semanticColors.isAmoledDark) 0.14f else 0.08f)
+                                    val tileBevelBrush = if (isSelected) {
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                lerp(MaterialTheme.colorScheme.primary, Color.White, 0.35f),
+                                                MaterialTheme.colorScheme.primary,
+                                                MaterialTheme.colorScheme.primary
+                                            )
+                                        )
+                                    } else {
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                Color.White.copy(alpha = if (semanticColors.isAmoledDark) 0.72f else 0.95f),
+                                                borderColor,
+                                                lerp(borderColor, catColor, 0.35f)
+                                            )
+                                        )
+                                    }
+
                                     Surface(
                                         shape = RoundedCornerShape(16.dp),
-                                        color = tileBg,
+                                        color = Color.Transparent,
                                         tonalElevation = 0.dp,
                                         shadowElevation = 0.dp,
                                         border = BorderStroke(
-                                            width = if (isSelected) 2.dp else 0.75.dp,
-                                            color = borderColor
+                                            width = if (isSelected) 2.dp else 0.9.dp,
+                                            brush = tileBevelBrush
                                         ),
                                         modifier = Modifier
                                             .weight(1f)
@@ -142,7 +165,14 @@ fun CategoryCardGrid(
                                                 scaleX = scale
                                                 scaleY = scale
                                             }
+                                            .shadow(
+                                                elevation = if (isSelected) 6.dp else 3.dp,
+                                                shape = RoundedCornerShape(16.dp),
+                                                ambientColor = catColor.copy(alpha = 0.22f),
+                                                spotColor = Color.Black.copy(alpha = if (semanticColors.isAmoledDark) 0.6f else 0.18f)
+                                            )
                                             .clip(RoundedCornerShape(16.dp))
+                                            .background(Brush.verticalGradient(listOf(tileTop, tileBg, tileBottom)))
                                             .clickable {
                                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                 onSelectCategory(cat)
@@ -195,11 +225,24 @@ fun CategoryCardGrid(
                                 } else if (showCustomTile && cellIndex == itemsInSection.size) {
                                     Surface(
                                         shape = RoundedCornerShape(16.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                                        color = Color.Transparent,
+                                        border = BorderStroke(
+                                            1.dp,
+                                            topLitBevelBrush(semanticColors, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                                        ),
                                         modifier = Modifier
                                             .weight(1f)
+                                            .shadow(
+                                                elevation = 3.dp,
+                                                shape = RoundedCornerShape(16.dp),
+                                                spotColor = Color.Black.copy(alpha = if (semanticColors.isAmoledDark) 0.55f else 0.14f)
+                                            )
                                             .clip(RoundedCornerShape(16.dp))
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(semanticColors.tileRaisedStart, semanticColors.tileRaisedEnd)
+                                                )
+                                            )
                                             .clickable {
                                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                 onRequestCustomCategory()

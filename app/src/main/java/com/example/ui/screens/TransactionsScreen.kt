@@ -334,19 +334,22 @@ fun TransactionsScreen(
                                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                 onEditTransaction(tx)
                                             }
-                                            .padding(horizontal = 14.dp, vertical = 12.dp)
+                                            .padding(horizontal = 16.dp, vertical = 14.dp)
                                             .testTag("transaction_card_${tx.id}")
                                     ) {
                                         EmojiBadge(
                                             emoji = emoji,
                                             tintColor = badgeTint,
-                                            size = 44.dp,
-                                            emojiSize = 21.sp,
-                                            shape = RoundedCornerShape(14.dp),
+                                            size = 46.dp,
+                                            emojiSize = 22.sp,
+                                            shape = RoundedCornerShape(15.dp),
                                             contentDescription = category?.name ?: tx.type.name
                                         )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
+                                        Spacer(modifier = Modifier.width(14.dp))
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(
                                                     text = tx.title,
@@ -357,7 +360,7 @@ fun TransactionsScreen(
                                                     modifier = Modifier.weight(1f, fill = false)
                                                 )
                                                 if (tx.isRecurring) {
-                                                    Spacer(modifier = Modifier.width(5.dp))
+                                                    Spacer(modifier = Modifier.width(6.dp))
                                                     Text(text = "🔁", fontSize = 13.sp)
                                                 }
                                             }

@@ -118,7 +118,7 @@ fun MoreScreen(
                     .fillMaxWidth()
                     .testTag("appearance_theme_card")
             ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         EmojiBadge(
                             emoji = when (activeThemeMode) {
@@ -127,13 +127,16 @@ fun MoreScreen(
                                 AppThemeMode.SYSTEM -> "📱"
                             },
                             tintColor = MaterialTheme.colorScheme.primary,
-                            size = 40.dp,
-                            emojiSize = 18.sp,
-                            shape = RoundedCornerShape(12.dp),
+                            size = 42.dp,
+                            emojiSize = 19.sp,
+                            shape = RoundedCornerShape(13.dp),
                             contentDescription = "Theme Mode"
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text("Display Theme", style = MaterialTheme.typography.titleMedium)
                             Text(
                                 text = when (activeThemeMode) {
@@ -201,13 +204,16 @@ fun MoreScreen(
                         EmojiBadge(
                             emoji = "✨",
                             tintColor = MaterialTheme.colorScheme.secondary,
-                            size = 40.dp,
-                            emojiSize = 18.sp,
-                            shape = RoundedCornerShape(12.dp),
+                            size = 42.dp,
+                            emojiSize = 19.sp,
+                            shape = RoundedCornerShape(13.dp),
                             contentDescription = "Typography Font Style"
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text("Font Style", style = MaterialTheme.typography.titleMedium)
                             Text(
                                 text = activeFontStyle.tagline,
@@ -217,46 +223,56 @@ fun MoreScreen(
                         }
                     }
 
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        AppFontStyle.entries.forEach { fontStyle ->
-                            val selected = activeFontStyle == fontStyle
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(min = 48.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(
-                                        if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
-                                        else semanticColors.surfaceElevated
-                                    )
-                                    .border(
-                                        BorderStroke(
-                                            width = if (selected) 1.25.dp else 0.75.dp,
-                                            color = if (selected) MaterialTheme.colorScheme.primary else semanticColors.hairlineBorder
-                                        ),
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    .clickable {
-                                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        onSetFontStyle(fontStyle)
-                                    }
-                                    .padding(horizontal = 6.dp, vertical = 8.dp)
-                                    .testTag("font_style_${fontStyle.name.lowercase()}")
+                        AppFontStyle.entries.chunked(3).forEach { rowStyles ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(
-                                    text = fontStyle.shortLabel,
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontFamily = fontFamilyFor(fontStyle)
-                                    ),
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                                rowStyles.forEach { fontStyle ->
+                                    val selected = activeFontStyle == fontStyle
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .heightIn(min = 48.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                                                else semanticColors.surfaceElevated
+                                            )
+                                            .border(
+                                                BorderStroke(
+                                                    width = if (selected) 1.25.dp else 0.75.dp,
+                                                    color = if (selected) MaterialTheme.colorScheme.primary else semanticColors.hairlineBorder
+                                                ),
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .clickable {
+                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                onSetFontStyle(fontStyle)
+                                            }
+                                            .padding(horizontal = 4.dp, vertical = 8.dp)
+                                            .testTag("font_style_${fontStyle.name.lowercase()}")
+                                    ) {
+                                        Text(
+                                            text = fontStyle.shortLabel,
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontFamily = fontFamilyFor(fontStyle)
+                                            ),
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                                repeat(3 - rowStyles.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
                             }
                         }
                     }
@@ -386,22 +402,26 @@ private fun MoreHubRow(
             .testTag(testTag)
     ) {
         Row(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             EmojiBadge(
                 emoji = emoji,
                 tintColor = tintColor,
-                size = 42.dp,
-                emojiSize = 19.sp,
-                shape = RoundedCornerShape(13.dp),
+                size = 44.dp,
+                emojiSize = 20.sp,
+                shape = RoundedCornerShape(14.dp),
                 contentDescription = title
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = FinFlowTheme.colors.textSecondary)
             }
+            Spacer(modifier = Modifier.width(8.dp))
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = FinFlowTheme.colors.textSecondary)
         }
     }
