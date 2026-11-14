@@ -104,9 +104,10 @@ fun PlanningScreen(
             }
         } else {
             Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 4.dp)
+                    .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 6.dp)
             ) {
                 Text(
                     text = "Planning",

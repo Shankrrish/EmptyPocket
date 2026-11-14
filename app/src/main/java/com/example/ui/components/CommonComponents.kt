@@ -12,9 +12,11 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -76,6 +78,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -83,13 +86,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -658,16 +660,26 @@ fun CenteredQuickAddTray(
                     .testTag("quick_add_scrim")
             )
 
-            // Elevated gradient quick-transaction popup anchored cleanly above the docked bar
+            // Floating 3D beveled card with raised tactile action tiles
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(26.dp),
                 color = Color.Transparent,
-                shadowElevation = if (semanticColors.isAmoledDark) 10.dp else 14.dp,
-                border = BorderStroke(0.75.dp, semanticColors.heroBorder),
+                shadowElevation = 0.dp,
+                border = BorderStroke(
+                    width = 1.25.dp,
+                    brush = topLitBevelBrush(semanticColors, semanticColors.heroBorder)
+                ),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .padding(start = 16.dp, end = 16.dp, bottom = 22.dp)
+                    .shadow(
+                        elevation = 22.dp,
+                        shape = RoundedCornerShape(26.dp),
+                        ambientColor = if (semanticColors.isAmoledDark) Color(0xFF4D6639).copy(alpha = 0.36f) else Color.Black.copy(alpha = 0.14f),
+                        spotColor = Color.Black.copy(alpha = if (semanticColors.isAmoledDark) 0.90f else 0.24f)
+                    )
+                    .clip(RoundedCornerShape(26.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -675,112 +687,141 @@ fun CenteredQuickAddTray(
                     )
                     .testTag("quick_add_popup_card")
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            Brush.linearGradient(
-                                listOf(semanticColors.heroGradientStart, semanticColors.heroGradientEnd)
+                            Brush.verticalGradient(
+                                listOf(semanticColors.popupSurfaceStart, semanticColors.popupSurfaceEnd)
                             )
                         )
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    // Crisp top specular rim inside floating 3D popup shell
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .height(1.25.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        Color.White.copy(alpha = if (semanticColors.isAmoledDark) 0.34f else 0.95f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                    )
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp, vertical = 18.dp)
                     ) {
-                        Column {
-                            Text(
-                                text = "Quick Transaction",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Choose an entry type or tap outside to close",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = semanticColors.textSecondary
-                            )
-                        }
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.testTag("quick_add_close_button")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(3.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "Quick Transaction",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Pick an entry type or tap outside to close",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = semanticColors.textSecondary
+                                )
+                            }
+                            SculptedActionIcon(
+                                icon = Icons.Default.Close,
                                 contentDescription = "Close quick add",
-                                tint = semanticColors.textSecondary
+                                tint = semanticColors.textSecondary,
+                                onClick = onDismiss,
+                                testTag = "quick_add_close_button"
                             )
                         }
-                    }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        CompactActionChip(
-                            emoji = "💸",
-                            label = "Expense",
-                            color = semanticColors.expense,
-                            testTag = "fab_expense_button",
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onSelectType(TransactionType.EXPENSE)
-                            }
-                        )
-                        CompactActionChip(
-                            emoji = "💳",
-                            label = "Card Spend",
-                            color = semanticColors.warning,
-                            testTag = "fab_cc_expense_button",
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onSelectType(TransactionType.CC_EXPENSE)
-                            }
-                        )
-                        CompactActionChip(
-                            emoji = "💰",
-                            label = "Income",
-                            color = semanticColors.income,
-                            testTag = "fab_income_button",
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onSelectType(TransactionType.INCOME)
-                            }
-                        )
-                    }
+                        // Primary Tier: 2 Wide Raised 3D Tactile Tiles
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Raised3DPrimaryTile(
+                                emoji = "💸",
+                                title = "Expense",
+                                subtitle = "Bank & Cash",
+                                color = semanticColors.expense,
+                                testTag = "fab_expense_button",
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSelectType(TransactionType.EXPENSE)
+                                }
+                            )
+                            Raised3DPrimaryTile(
+                                emoji = "💰",
+                                title = "Income",
+                                subtitle = "Salary & Inflow",
+                                color = semanticColors.income,
+                                testTag = "fab_income_button",
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSelectType(TransactionType.INCOME)
+                                }
+                            )
+                        }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        CompactActionChip(
-                            emoji = "🧾",
-                            label = "Pay Card",
-                            color = semanticColors.cardPayment,
-                            testTag = "fab_cc_payment_button",
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onSelectType(TransactionType.CC_PAYMENT)
-                            }
-                        )
-                        CompactActionChip(
-                            emoji = "🔄",
-                            label = "Transfer",
-                            color = MaterialTheme.colorScheme.primary,
-                            testTag = "fab_transfer_button",
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onSelectType(TransactionType.TRANSFER)
-                            }
-                        )
+                        // Secondary Tier: 3 Symmetrical Raised 3D Tiles
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Raised3DSecondaryTile(
+                                emoji = "💳",
+                                title = "Card Spend",
+                                subtitle = "Credit limit",
+                                color = semanticColors.warning,
+                                testTag = "fab_cc_expense_button",
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSelectType(TransactionType.CC_EXPENSE)
+                                }
+                            )
+                            Raised3DSecondaryTile(
+                                emoji = "🧾",
+                                title = "Pay Card",
+                                subtitle = "Settle bill",
+                                color = semanticColors.cardPayment,
+                                testTag = "fab_cc_payment_button",
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSelectType(TransactionType.CC_PAYMENT)
+                                }
+                            )
+                            Raised3DSecondaryTile(
+                                emoji = "🔄",
+                                title = "Transfer",
+                                subtitle = "Move funds",
+                                color = MaterialTheme.colorScheme.primary,
+                                testTag = "fab_transfer_button",
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSelectType(TransactionType.TRANSFER)
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -789,53 +830,208 @@ fun CenteredQuickAddTray(
 }
 
 @Composable
-private fun CompactActionChip(
+private fun Raised3DPrimaryTile(
     emoji: String,
-    label: String,
+    title: String,
+    subtitle: String,
     color: Color,
     testTag: String,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val semanticColors = FinFlowTheme.colors
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.97f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "tilePress_$testTag"
+    )
+    val tileShape = RoundedCornerShape(18.dp)
+    val bgTop = lerp(semanticColors.tileRaisedStart, color, if (semanticColors.isAmoledDark) 0.08f else 0.04f)
+    val bgBottom = semanticColors.tileRaisedEnd
+
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = tileShape,
         color = Color.Transparent,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
-        border = BorderStroke(0.75.dp, color.copy(alpha = 0.42f)),
+        border = BorderStroke(1.dp, topLitBevelBrush(semanticColors, color.copy(alpha = 0.48f))),
         modifier = modifier
-            .heightIn(min = 50.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(semanticColors.cardSheenStart, semanticColors.cardSheenEnd)
-                )
+            .heightIn(min = 66.dp)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
+            .shadow(
+                elevation = 6.dp,
+                shape = tileShape,
+                ambientColor = color.copy(alpha = 0.24f),
+                spotColor = Color.Black.copy(alpha = if (semanticColors.isAmoledDark) 0.78f else 0.16f)
             )
-            .clickable(onClick = onClick)
+            .clip(tileShape)
+            .background(Brush.verticalGradient(listOf(bgTop, bgBottom)))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
             .testTag(testTag)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp)
-        ) {
-            EmojiBadge(
-                emoji = emoji,
-                tintColor = color,
-                size = 30.dp,
-                emojiSize = 15.sp,
-                shape = RoundedCornerShape(9.dp)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = if (semanticColors.isAmoledDark) 0.28f else 0.9f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
+            ) {
+                EmojiBadge(
+                    emoji = emoji,
+                    tintColor = color,
+                    size = 40.dp,
+                    emojiSize = 20.sp,
+                    shape = RoundedCornerShape(13.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = semanticColors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Raised3DSecondaryTile(
+    emoji: String,
+    title: String,
+    subtitle: String,
+    color: Color,
+    testTag: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val semanticColors = FinFlowTheme.colors
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.97f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "secTilePress_$testTag"
+    )
+    val tileShape = RoundedCornerShape(18.dp)
+    val bgTop = lerp(semanticColors.tileRaisedStart, color, if (semanticColors.isAmoledDark) 0.06f else 0.03f)
+    val bgBottom = semanticColors.tileRaisedEnd
+
+    Surface(
+        shape = tileShape,
+        color = Color.Transparent,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = BorderStroke(0.9.dp, topLitBevelBrush(semanticColors, color.copy(alpha = 0.42f))),
+        modifier = modifier
+            .heightIn(min = 84.dp)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
+            .shadow(
+                elevation = 5.dp,
+                shape = tileShape,
+                ambientColor = color.copy(alpha = 0.2f),
+                spotColor = Color.Black.copy(alpha = if (semanticColors.isAmoledDark) 0.72f else 0.14f)
             )
+            .clip(tileShape)
+            .background(Brush.verticalGradient(listOf(bgTop, bgBottom)))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .testTag(testTag)
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = if (semanticColors.isAmoledDark) 0.24f else 0.85f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp, vertical = 11.dp)
+            ) {
+                EmojiBadge(
+                    emoji = emoji,
+                    tintColor = color,
+                    size = 34.dp,
+                    emojiSize = 17.sp,
+                    shape = RoundedCornerShape(11.dp)
+                )
+                Spacer(modifier = Modifier.height(7.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = semanticColors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
@@ -892,13 +1088,28 @@ fun CenteredBottomNavBar(
                     Surface(
                         shape = CircleShape,
                         color = Color.Transparent,
-                        shadowElevation = if (semanticColors.isAmoledDark) 0.dp else 4.dp,
-                        border = BorderStroke(0.75.dp, semanticColors.hairlineBorder),
+                        shadowElevation = 0.dp,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.55f),
+                                    Color.White.copy(alpha = 0.16f),
+                                    Color.Black.copy(alpha = 0.35f)
+                                )
+                            )
+                        ),
                         modifier = Modifier
-                            .size(50.dp)
+                            .size(52.dp)
+                            .shadow(
+                                elevation = 8.dp,
+                                shape = CircleShape,
+                                ambientColor = semanticColors.accentCtaEnd.copy(alpha = 0.35f),
+                                spotColor = Color.Black.copy(alpha = if (semanticColors.isAmoledDark) 0.85f else 0.25f)
+                            )
                             .clip(CircleShape)
                             .background(
-                                Brush.linearGradient(listOf(semanticColors.accentCtaStart, semanticColors.accentCtaEnd)),
+                                Brush.verticalGradient(listOf(semanticColors.accentCtaEnd, semanticColors.accentCtaStart)),
                                 CircleShape
                             )
                             .clickable {

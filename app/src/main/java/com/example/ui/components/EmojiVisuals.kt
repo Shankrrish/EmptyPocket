@@ -7,29 +7,37 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -41,6 +49,7 @@ import com.example.data.model.AssetLiabilityCategory
 import com.example.data.model.CategoryEntity
 import com.example.data.model.CategoryType
 import com.example.data.model.TransactionType
+import com.example.ui.theme.FinFlowSemanticColors
 import com.example.ui.theme.FinFlowTheme
 
 data class EmojiPresetGroup(
@@ -204,6 +213,24 @@ fun pastelTileColors(
     return baseFill to border
 }
 
+fun topLitBevelBrush(
+    semanticColors: FinFlowSemanticColors,
+    accentBorder: Color? = null
+): Brush {
+    val topRim = if (accentBorder != null) {
+        lerp(accentBorder, Color.White, if (semanticColors.isAmoledDark) 0.42f else 0.72f)
+    } else {
+        semanticColors.bevelTopHighlight
+    }
+    val midRim = accentBorder ?: semanticColors.bevelSideBorder
+    val bottomRim = if (accentBorder != null) {
+        lerp(accentBorder, semanticColors.bevelBottomShadow, 0.55f)
+    } else {
+        semanticColors.bevelBottomShadow
+    }
+    return Brush.verticalGradient(listOf(topRim, midRim, bottomRim))
+}
+
 @Composable
 fun EmojiBadge(
     emoji: String,
@@ -215,20 +242,45 @@ fun EmojiBadge(
     selected: Boolean = false,
     contentDescription: String? = null
 ) {
-    val isAmoled = FinFlowTheme.colors.isAmoledDark
+    val semanticColors = FinFlowTheme.colors
+    val isAmoled = semanticColors.isAmoledDark
     val (pastelBg, pastelBorder) = pastelTileColors(emoji, tintColor, isAmoled)
-    val bgColor = if (selected) lerp(pastelBg, MaterialTheme.colorScheme.primary, 0.12f) else pastelBg
-    val borderColor = if (selected) MaterialTheme.colorScheme.primary else pastelBorder
+    val bgColor = if (selected) lerp(pastelBg, MaterialTheme.colorScheme.primary, 0.14f) else pastelBg
+    val topHighlight = lerp(bgColor, Color.White, if (isAmoled) 0.42f else 0.55f)
+    val bottomDepth = lerp(bgColor, tintColor, if (isAmoled) 0.14f else 0.10f)
+    val bevelBorder = if (selected) {
+        Brush.verticalGradient(
+            listOf(
+                lerp(MaterialTheme.colorScheme.primary, Color.White, 0.35f),
+                MaterialTheme.colorScheme.primary,
+                MaterialTheme.colorScheme.primary
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = if (isAmoled) 0.72f else 0.95f),
+                pastelBorder,
+                lerp(pastelBorder, tintColor, 0.35f)
+            )
+        )
+    }
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(size)
+            .shadow(
+                elevation = if (selected) 5.dp else 3.dp,
+                shape = shape,
+                ambientColor = tintColor.copy(alpha = 0.25f),
+                spotColor = Color.Black.copy(alpha = if (isAmoled) 0.65f else 0.22f)
+            )
             .clip(shape)
-            .background(bgColor, shape)
+            .background(Brush.verticalGradient(listOf(topHighlight, bgColor, bottomDepth)), shape)
             .border(
-                width = if (selected) 1.5.dp else 0.75.dp,
-                color = borderColor,
+                width = if (selected) 1.5.dp else 0.9.dp,
+                brush = bevelBorder,
                 shape = shape
             )
             .then(
@@ -237,11 +289,81 @@ fun EmojiBadge(
                 } else Modifier
             )
     ) {
+        // Soft top-inner specular rim for cushioned 3D feel
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            Color.Transparent,
+                            Color.White.copy(alpha = 0.55f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
         Text(
             text = emoji,
             fontSize = emojiSize,
             lineHeight = emojiSize
         )
+    }
+}
+
+@Composable
+fun SculptedActionIcon(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tint: Color = MaterialTheme.colorScheme.primary,
+    badgeSize: Dp = 36.dp,
+    iconSize: Dp = 18.dp,
+    shape: Shape = RoundedCornerShape(11.dp),
+    testTag: String? = null
+) {
+    val semanticColors = FinFlowTheme.colors
+    val taggedModifier = if (testTag != null) modifier.testTag(testTag) else modifier
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = taggedModifier
+            .minimumInteractiveComponentSize()
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(badgeSize)
+                .shadow(
+                    elevation = if (semanticColors.isAmoledDark) 4.dp else 3.dp,
+                    shape = shape,
+                    ambientColor = tint.copy(alpha = 0.2f),
+                    spotColor = Color.Black.copy(alpha = if (semanticColors.isAmoledDark) 0.7f else 0.18f)
+                )
+                .clip(shape)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(semanticColors.tileRaisedStart, semanticColors.tileRaisedEnd)
+                    ),
+                    shape
+                )
+                .border(
+                    width = 0.9.dp,
+                    brush = topLitBevelBrush(semanticColors, tint.copy(alpha = 0.45f)),
+                    shape = shape
+                )
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = tint,
+                modifier = Modifier.size(iconSize)
+            )
+        }
     }
 }
 
@@ -280,7 +402,7 @@ fun FinSurfaceCard(
     shape: Shape = RoundedCornerShape(20.dp),
     containerColor: Color = MaterialTheme.colorScheme.surface,
     backgroundBrush: Brush? = null,
-    elevation: Dp = 0.dp,
+    elevation: Dp = 4.dp,
     borderColor: Color = FinFlowTheme.colors.hairlineBorder,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -288,25 +410,52 @@ fun FinSurfaceCard(
     val effectiveBrush = backgroundBrush ?: if (containerColor == MaterialTheme.colorScheme.surface) {
         Brush.verticalGradient(listOf(semanticColors.cardSheenStart, semanticColors.cardSheenEnd))
     } else null
+    val customAccentBorder = if (borderColor == semanticColors.hairlineBorder) null else borderColor
+    val effectiveElevation = if (elevation == 0.dp) {
+        if (semanticColors.isAmoledDark) 4.dp else 3.dp
+    } else {
+        elevation
+    }
 
     Card(
-        modifier = modifier,
+        modifier = modifier.shadow(
+            elevation = effectiveElevation,
+            shape = shape,
+            ambientColor = if (semanticColors.isAmoledDark) Color(0xFF3E5030).copy(alpha = 0.30f) else Color.Black.copy(alpha = 0.08f),
+            spotColor = if (semanticColors.isAmoledDark) Color.Black.copy(alpha = 0.85f) else Color(0xFF3E4F22).copy(alpha = 0.14f)
+        ),
         shape = shape,
-        border = BorderStroke(0.75.dp, borderColor),
+        border = BorderStroke(1.dp, topLitBevelBrush(semanticColors, customAccentBorder)),
         colors = CardDefaults.cardColors(
             containerColor = if (effectiveBrush != null) Color.Transparent else containerColor
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = elevation)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        if (effectiveBrush != null) {
-            Column(
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (effectiveBrush != null) Modifier.background(effectiveBrush) else Modifier)
+        ) {
+            // Subtle top-lit inner rim highlight across card upper edge
+            Box(
                 modifier = Modifier
+                    .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .background(effectiveBrush),
+                    .height(1.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color.Transparent,
+                                semanticColors.bevelTopHighlight.copy(alpha = if (semanticColors.isAmoledDark) 0.55f else 0.9f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
                 content = content
             )
-        } else {
-            content()
         }
     }
 }

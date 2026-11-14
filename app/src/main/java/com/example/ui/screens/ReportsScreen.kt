@@ -302,13 +302,13 @@ private fun SpendingReportTab(state: FinanceUiState) {
         }
 
         items(state.categorySlices, key = { "cat_rep_${it.category.id}" }) { slice ->
-            FinSurfaceCard(shape = RoundedCornerShape(16.dp), elevation = 0.dp) {
-                Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            FinSurfaceCard(shape = RoundedCornerShape(16.dp)) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     EmojiBadge(
                         emoji = resolveCategoryEmoji(slice.category.iconName, slice.category.name),
                         tintColor = Color(slice.category.colorHex),
-                        size = 38.dp,
-                        emojiSize = 18.sp
+                        size = 40.dp,
+                        emojiSize = 19.sp
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
@@ -351,12 +351,15 @@ private fun AccountsReportTab(state: FinanceUiState) {
                     else -> 0.0
                 }
             }
-            FinSurfaceCard(shape = RoundedCornerShape(18.dp), elevation = 0.dp) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            FinSurfaceCard(shape = RoundedCornerShape(18.dp)) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        EmojiBadge(emoji = accountEmoji(s.account.type, s.account.emoji), tintColor = Color(s.account.colorHex), size = 36.dp, emojiSize = 17.sp)
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
+                        EmojiBadge(emoji = accountEmoji(s.account.type, s.account.emoji), tintColor = Color(s.account.colorHex), size = 40.dp, emojiSize = 19.sp)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text(s.account.name, style = MaterialTheme.typography.titleSmall)
                             Text(s.account.type.displayLabel, style = MaterialTheme.typography.labelSmall, color = semanticColors.textSecondary)
                         }
@@ -373,8 +376,8 @@ private fun AccountsReportTab(state: FinanceUiState) {
             item { Spacer(modifier = Modifier.height(4.dp)); Text("Credit Card Utilization", style = MaterialTheme.typography.titleMedium) }
             items(state.cardSummaries, key = { "cc_rep_${it.card.id}" }) { cs ->
                 val util = if (cs.card.limitAmount > 0) (cs.openInvoice / cs.card.limitAmount).toFloat().coerceIn(0f, 1f) else 0f
-                FinSurfaceCard(shape = RoundedCornerShape(18.dp), elevation = 0.dp) {
-                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                FinSurfaceCard(shape = RoundedCornerShape(18.dp)) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("💳 ${cs.card.name}", style = MaterialTheme.typography.titleSmall)
                             Text("${(util * 100).toInt()}% used", style = MaterialTheme.typography.labelSmall, color = if (util > 0.8f) semanticColors.warning else semanticColors.textSecondary)

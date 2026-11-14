@@ -180,10 +180,13 @@ fun AccountsScreen(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                     }
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text("Accounts & Cards", style = MaterialTheme.typography.headlineSmall)
                         Text(
-                            text = "Banks, cash, prepaid e-wallets & credit limits",
+                            text = "Banks, cash, prepaid wallets & credit limits",
                             style = MaterialTheme.typography.bodySmall,
                             color = semanticColors.textSecondary
                         )
@@ -466,32 +469,55 @@ private fun RichAccountRowCard(
             .clickable(onClick = onInspect)
             .testTag("rich_account_card_${acc.id}")
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 EmojiBadge(
                     emoji = accountEmoji(acc.type, acc.emoji),
                     tintColor = accColor,
-                    size = 44.dp,
-                    emojiSize = 20.sp,
+                    size = 46.dp,
+                    emojiSize = 21.sp,
                     shape = RoundedCornerShape(14.dp),
                     contentDescription = acc.name
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = acc.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = acc.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = accColor.copy(alpha = if (semanticColors.isAmoledDark) 0.16f else 0.10f)
+                        ) {
+                            Text(
+                                text = acc.type.shortBadge,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (semanticColors.isAmoledDark) MaterialTheme.colorScheme.primary else accColor,
+                                maxLines = 1,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
                     Text(
                         text = subtitleParts.joinToString(" • ").ifBlank { acc.type.displayLabel },
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.bodySmall,
                         color = semanticColors.textSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = formatCurrency(summary.currentBalance, isBalanceHidden),
                     style = MaterialTheme.typography.titleMedium,
