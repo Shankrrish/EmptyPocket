@@ -1,0 +1,6 @@
+{
+  "name": "MoneyTracker",
+  "description": "Personal finance, expense tracker, credit cards, and monthly budget manager",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

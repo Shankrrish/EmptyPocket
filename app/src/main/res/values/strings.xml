@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">MoneyTracker</string>
+    <string name="nav_dashboard">Home</string>
+    <string name="nav_transactions">Transactions</string>
+    <string name="nav_accounts">Accounts</string>
+    <string name="nav_portfolio">Portfolio</string>
+    <string name="nav_reports">Reports</string>
+    <string name="nav_planning">Planning</string>
+    <string name="nav_more">More</string>
+    <string name="account_balance">Account Balance</string>
+    <string name="income">Income</string>
+    <string name="expenses">Expenses</string>
+    <string name="credit_cards">Credit Cards</string>
+    <string name="monthly_budget">Monthly Budget</string>
+    <string name="expenses_by_category">Expenses by Category</string>
+    <string name="no_expenses_month">No expenses recorded this month.</string>
+    <string name="search_transactions_hint">Search transactions…</string>
+    <string name="wallets_and_accounts">Wallets &amp; Bank Accounts</string>
+    <string name="reset_demo_data">Reset Demo Data</string>
+    <string name="cd_previous_month">Previous month</string>
+    <string name="cd_next_month">Next month</string>
+    <string name="cd_toggle_visibility">Toggle balance visibility</string>
+    <string name="cd_add_entry">Add transaction</string>
+</resources>
